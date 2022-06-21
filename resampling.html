@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2022-06-20 Mon 21:34 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Estimating experimental errors with resampling</title>
+<meta name="author" content="Tomás S. Grigera" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/css/htmlize.css"/>
+<link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/css/readtheorg.css"/>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="https://fniessen.github.io/org-html-themes/src/lib/js/jquery.stickytableheaders.min.js"></script>
+<script type="text/javascript" src="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/js/readtheorg.js"></script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        displayAlign: "center",
+        displayIndent: "0em",
+
+        "HTML-CSS": { scale: 100,
+                        linebreaks: { automatic: "false" },
+                        webFont: "TeX"
+                       },
+        SVG: {scale: 100,
+              linebreaks: { automatic: "false" },
+              font: "TeX"},
+        NativeMML: {scale: 100},
+        TeX: { equationNumbers: {autoNumber: "AMS"},
+               MultLineWidth: "85%",
+               TagSide: "right",
+               TagIndent: ".8em"
+             }
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS_HTML"></script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Estimating experimental errors with resampling</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgbfcf407">1. Synthetic data</a></li>
+<li><a href="#orgb3010a1">2. Estimation of the mean</a>
+<ul>
+<li><a href="#orgc6e3870">2.1. Gaussian case</a></li>
+<li><a href="#orgf673359">2.2. Student's t-distribution</a></li>
+<li><a href="#org4c57818">2.3. Cauchy-Lorentz</a></li>
+</ul>
+</li>
+<li><a href="#org0f1039d">3. Fit parameters</a></li>
+<li><a href="#org6d1153f">4. References</a></li>
+</ul>
+</div>
+</div>
+<p>
+We test here a resampling method for error estimation, using synthetic data with known distributions.
+We use the resampling procedure as described in  Leuzzi, Marinari, and Parisi <a href="#citeproc_bib_item_1">2020, chap. 5</a>.
+</p>
+
+<p>
+Here we assume the experiment produces a set of (scalar) samples \(\{x_i\}\), \(i=1\ldots N\), distributed according to an unknown probability distribution \(D(x)\).  From these data we compute some function \(f(\{x_i\})\) which is our estimate of a quantity \(\Phi\) what we seek to determine from the experiment.  In the simplest case, the \(x_i\) are repeated measurements of some physical magnitude of interest, and \(f(\{x_i\})=\frac{1}{N}\sum_i x_i\) is the sample mean and \(\Phi=\mu\), i.e. we are estimating the mean of \(D(x)\), which we assume is the true value of the physical quantity.
+</p>
+
+<p>
+To quantify the error on our estimate for \(\Phi\), we would like to know the probability distribution \(P(f |x_i)\), i.e. the distribution of our estimate, given that our experimental results are what they are.
+</p>
+
+<p>
+The resampling method builds an estimate of \(P(f|x_i)\) by computing \(f\) on many artificial experimental sets.  The artificial sets are constructed with the prescription that each of the original data points are picked with probability 1/2 (or put in other words, each data point is reweighed with a weight that is 0 or 1 with equal probability).
+</p>
+
+<p>
+The procedure is implemented in the following <code>Julia</code> function:
+</p>
+<div class="org-src-container">
+<pre class="src src-jupyter-julia"><span style="color: #3a81c3; font-weight: bold;">using</span> Statistics
+
+<span style="color: #2d9574;">"""Do `Nrs` resamplings of data vector `X` and return the set of</span>
+<span style="color: #2d9574;">   values resulting from applying `f` to each resampling."""</span>
+<span style="color: #3a81c3; font-weight: bold;">function</span> <span style="color: #6c3163; font-weight: bold;">resample</span>(X,Nrs,f=Statistics.mean,RNG=Random.GLOBAL_RNG)
+    fs=[]
+    <span style="color: #3a81c3; font-weight: bold;">for</span> _<span style="color: #3a81c3; font-weight: bold;">=</span>1:Nrs
+        rsamp=eltype(X)[]
+        <span style="color: #3a81c3; font-weight: bold;">for</span> x <span style="color: #3a81c3; font-weight: bold;">in</span> X <span style="color: #3a81c3; font-weight: bold;">if</span> Random.rand(RNG,Float64)&gt;0.5 push!(rsamp,x) <span style="color: #3a81c3; font-weight: bold;">end</span> <span style="color: #3a81c3; font-weight: bold;">end</span>
+        push!(fs,f(rsamp))
+    <span style="color: #3a81c3; font-weight: bold;">end</span>
+    <span style="color: #3a81c3; font-weight: bold;">return</span> fs
+<span style="color: #3a81c3; font-weight: bold;">end</span>
+</pre>
+</div>
+
+<pre class="example">
+resample
+</pre>
+
+<div id="outline-container-orgbfcf407" class="outline-2">
+<h2 id="orgbfcf407"><span class="section-number-2">1.</span> Synthetic data</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+To test the above procedure we will generate pseudo-random data sets centred around zero and distributed according to the following well-known distributions:
+</p>
+\begin{align*}
+D_G(x;\mu,\sigma) &= \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left[\frac{(x-\mu)^2}{2\sigma^2}\right], & \text{Gaussian}\\
+D_S (x; \nu) &= \frac{\Gamma( \frac{\nu+1}{2})}{\sqrt{\nu\pi} \Gamma(\nu/2)} \left( 1 + \frac{x^2}{\nu} \right)^{-\frac{\nu + 1}{2}}, & \text{Student's t} \\
+D_c (x; \mu, \sigma) &= \frac{1}{\pi \sigma} \frac{1}{ 1 + \left(\frac{x -\mu}{\sigma} \right)^2 }, & \text{Cauchy-Lorentz}
+\end{align*}
+<p>
+We shall set \(\mu=0\) and \(\sigma=2\) for the Gaussian and Cauchy-Lorentz distributions, and use two values of \(\nu\) for the Student's t-distribution, so that the first moments are:
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-right">Mean</td>
+<td class="org-left">Variance</td>
+</tr>
+
+<tr>
+<td class="org-left">Gaussian &sigma;=2</td>
+<td class="org-right">0</td>
+<td class="org-left">4</td>
+</tr>
+
+<tr>
+<td class="org-left">Student &nu;=8/3</td>
+<td class="org-right">0</td>
+<td class="org-left">4</td>
+</tr>
+
+<tr>
+<td class="org-left">Student &nu;=1.1</td>
+<td class="org-right">0</td>
+<td class="org-left">undef</td>
+</tr>
+
+<tr>
+<td class="org-left">Cauchy-Lorentz &sigma;=2</td>
+<td class="org-right">undef</td>
+<td class="org-left">undef</td>
+</tr>
+</tbody>
+</table>
+<p>
+Student's-t with \(\nu=1.1\) has mean but no variance, while the Cauchy-Lorentz distribution does not even have a defined mean (it's median is equal to \(\mu\), or zero in our case).  We can generate pseud-random numbers with these distributions with <code>Julia</code>'s <code>Distributions</code> package.
+</p>
+<div class="org-src-container">
+<pre class="src src-jupyter-julia"><span style="color: #3a81c3; font-weight: bold;">using</span> Random,Distributions
+
+&#963;=2
+&#963;sq=&#963;^2
+gauss=Normal(0,&#963;)
+&#957;=2&#963;sq/(&#963;sq-1)
+student_narrow=TDist(&#957;)
+&#957;w=1.1
+student_wide=TDist(&#957;w)
+cauchy=Cauchy(0,&#963;)
+</pre>
+</div>
+
+<pre class="example">
+Cauchy{Float64}(μ=0.0, σ=2.0)
+</pre>
+
+
+<p>
+This is how the distributions look.  Points are histograms computed from a set of 10<sup>5</sup> random numbers.  We usually will not have the luxury of such a large data set in experiments, but for now it serves as a check that our pseudo-random numbers are what we need them to be.
+</p>
+
+
+<div id="org6b02b07" class="figure">
+<p><img src="./.ob-jupyter/0740c66e2fd973f4a8ec9c5965994ac76e52ad92.svg" alt="0740c66e2fd973f4a8ec9c5965994ac76e52ad92.svg" class="org-svg" />
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgb3010a1" class="outline-2">
+<h2 id="orgb3010a1"><span class="section-number-2">2.</span> Estimation of the mean</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Let's try the resampling method to put a confidence interval on the estimation of the mean.  Below we draw synthetic samples of \(N=10\) to 5000 data points, compute the average of those as an estimate of the mean.  We then do as many resamplings as there are data points, then compute the population standard deviation of the means of each resampling.  We give in the tables below the estimation of &mu; with a confidence interval of twice the standard deviation, the estimation of the s.d. of the mean, and the simple estimate of the s.d. using the population s.d divided by \sqrt{N},
+\[ \left\{ \frac{1}{N(N-1)} \sum_i \left( x_i-\overline{x}\right) \right\}^{1/2}.\]
+</p>
+</div>
+
+
+<div id="outline-container-orgc6e3870" class="outline-3">
+<h3 id="orgc6e3870"><span class="section-number-3">2.1.</span> Gaussian case</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+The Gaussian case is the simplest, here we expect the simple estimation to work well, plus we know exactly the s.d. of the estimation of \(\mu\) (it is \(\sigma/\sqrt{n}\)).  We produce the table with the following code:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-jupyter-julia"><span style="color: #3a81c3; font-weight: bold;">using</span> Printf
+
+println(<span style="color: #2d9574;">"|    N |   &#956; estimation |   &#963; est | &#963; naive est | Actual &#963; |"</span>)
+<span style="color: #3a81c3; font-weight: bold;">for</span> Ns <span style="color: #3a81c3; font-weight: bold;">in</span> [10,20,50,100,200,500,1000,2000,5000]
+    A=rand(gauss,Ns)
+    &#956;_e=Statistics.mean(A)
+    rA=resample(A,Ns)
+    &#963;_e=sqrt(var(rA))
+    <span style="color: #6c3163;">@printf</span> <span style="color: #2d9574;">"| %4d | %7.4f&#177;%6.4f | %7.4f |     %7.4f |  %7.4f | \n"</span> Ns &#956;_e 2&#963;_e &#963;_e sqrt(var(A)/(Ns-1)) &#963;/sqrt(Ns)
+<span style="color: #3a81c3; font-weight: bold;">end</span>
+</pre>
+</div>
+
+<pre class="example">
+|    N |   μ estimation |   σ est | σ naive est | Actual σ |
+|   10 | -0.0930±1.2391 |  0.6196 |      0.6993 |   0.6325 | 
+|   20 |  0.0966±0.9641 |  0.4821 |      0.4271 |   0.4472 | 
+|   50 |  0.0011±0.5113 |  0.2556 |      0.2511 |   0.2828 | 
+|  100 |  0.3426±0.3665 |  0.1832 |      0.1837 |   0.2000 | 
+|  200 | -0.0676±0.2800 |  0.1400 |      0.1494 |   0.1414 | 
+|  500 |  0.0061±0.1737 |  0.0869 |      0.0867 |   0.0894 | 
+| 1000 |  0.0160±0.1400 |  0.0700 |      0.0664 |   0.0632 | 
+| 2000 | -0.0049±0.0886 |  0.0443 |      0.0443 |   0.0447 | 
+| 5000 | -0.0378±0.0547 |  0.0274 |      0.0279 |   0.0283 | 
+</pre>
+</div>
+</div>
+
+
+<div id="outline-container-orgf673359" class="outline-3">
+<h3 id="orgf673359"><span class="section-number-3">2.2.</span> Student's t-distribution</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+First we do, with similar code as above, the "narrow" t-distribution i.e. with finite variance equal to 4, as in the Gaussian case.
+</p>
+
+<pre class="example">
+|    N |   μ estimation |   σ est | σ naive est |
+|   10 |  1.1900±1.6914 |  0.8457 |      0.7954 |
+|   20 | -0.1149±0.7712 |  0.3856 |      0.2818 |
+|   50 | -0.5587±0.7726 |  0.3863 |      0.3429 |
+|  100 |  0.0011±0.3239 |  0.1619 |      0.1723 |
+|  200 |  0.0948±0.4260 |  0.2130 |      0.2016 |
+|  500 |  0.0535±0.3885 |  0.1942 |      0.1984 |
+| 1000 |  0.0365±0.1171 |  0.0586 |      0.0581 |
+| 2000 | -0.0260±0.0859 |  0.0429 |      0.0427 |
+| 5000 | -0.0295±0.0555 |  0.0278 |      0.0280 |
+</pre>
+
+
+<p>
+Now the t-distribution with undefined variance.  Things are not good here, in the sense that the error is not decreasing systematically with more samples.  However, both the resampling and naive estimations of standard deviation warn us about that.
+</p>
+
+<pre class="example">
+|    N |    μ estimation |   σ est | σ naive est |
+|   10 |  2.5102± 6.4034 |  3.2017 |      3.4710 |
+|   20 |  1.1654± 4.8692 |  2.4346 |      2.7253 |
+|   50 | -2.3050± 3.0301 |  1.5150 |      1.5365 |
+|  100 |  2.2331± 4.3243 |  2.1621 |      2.1756 |
+|  200 |  0.3414± 0.7339 |  0.3670 |      0.4036 |
+|  500 | -1.0585± 3.6381 |  1.8191 |      1.8011 |
+| 1000 | -0.0966± 2.2454 |  1.1227 |      1.1519 |
+| 2000 |  1.5855± 4.0281 |  2.0141 |      2.0182 |
+| 5000 | 32.6215±68.3293 | 34.1647 |     34.1605 |
+</pre>
+</div>
+</div>
+
+
+<div id="outline-container-org4c57818" class="outline-3">
+<h3 id="org4c57818"><span class="section-number-3">2.3.</span> Cauchy-Lorentz</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+This distribution doesn't have a mean, so it's not surprising that errors are not decreasing with \(N\) here.
+</p>
+
+<pre class="example">
+|    N |   μ estimation |    σ est | σ naive est |
+|   10 | -0.5017± 4.9469 |  2.4735 |      1.7552 |
+|   20 | -1.2743± 7.6128 |  3.8064 |      3.7377 |
+|   50 |  5.5722±10.7263 |  5.3631 |      5.9061 |
+|  100 | -2.3583± 4.0697 |  2.0349 |      2.0916 |
+|  200 |  0.3391± 3.1496 |  1.5748 |      1.5831 |
+|  500 | -0.2632± 7.1307 |  3.5653 |      3.7054 |
+| 1000 |  0.2794± 2.5352 |  1.2676 |      1.2566 |
+| 2000 | 12.3297±20.5714 | 10.2857 |     10.2826 |
+| 5000 |  0.1749± 2.4781 |  1.2390 |      1.2605 |
+</pre>
+
+
+<p>
+Things work much better with the <i>median</i>.  The naive error estimate has no meaning here, but the resampling estimate is satisfactory.
+</p>
+
+<pre class="example">
+|    N |   μ estimation |   σ est | σ naive est |
+|   10 | -1.2699± 2.7900 |  1.3950 |      0.8036 | 
+|   20 | -0.6718± 0.7847 |  0.3924 |      4.9249 | 
+|   50 | -0.6651± 1.1596 |  0.5798 |      3.7524 | 
+|  100 |  0.3848± 0.7916 |  0.3958 |      1.1779 | 
+|  200 |  0.0793± 0.3939 |  0.1969 |      2.3231 | 
+|  500 | -0.0357± 0.3547 |  0.1773 |     87.3314 | 
+| 1000 |  0.0540± 0.2017 |  0.1009 |      4.1377 | 
+| 2000 |  0.1120± 0.1353 |  0.0676 |      8.3017 | 
+| 5000 | -0.0269± 0.0814 |  0.0407 |      0.6318 | 
+</pre>
+
+
+<p>
+The plots of the distributions below illustrate a bit what is going on.
+</p>
+
+
+<div id="orgb0d28b1" class="figure">
+<p><img src="./.ob-jupyter/f83dfdb1ce77e6adb009d358fd57360d2b9dc6a3.svg" alt="f83dfdb1ce77e6adb009d358fd57360d2b9dc6a3.svg" class="org-svg" />
+</p>
+</div>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org0f1039d" class="outline-2">
+<h2 id="org0f1039d"><span class="section-number-2">3.</span> Fit parameters</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+How does resampling work when trying to put an error to parameters obtained from curve-fitting?  We try resampling on fake experimental data created by adding noise to a power law.  We start from 40 points obeying \(y=a x^z\) with \(z=1.2\), then add noise to them using our "wide" Student's t.  Since we will be fitting a power law, we draw <i>relative</i> errors from this distribution.  Also, since we will work with logarithms, we discard errors that would make values negative.  We add noise both on \(x\) and \(y\):
+</p>
+<div class="org-src-container">
+<pre class="src src-jupyter-julia">Random.seed!(1125)
+a=10; z=1.2
+x=10 .^range(-2,-1,length=40)
+y=a*x.^z
+xe=-ones(size(x))
+ye=-ones(size(y))
+<span style="color: #3a81c3; font-weight: bold;">for</span> i<span style="color: #3a81c3; font-weight: bold;">=</span>1:length(x)
+    <span style="color: #3a81c3; font-weight: bold;">while</span> xe[i]&lt;0 xe[i]=x[i]+x[i]*rand(student_wide)*0.1 <span style="color: #3a81c3; font-weight: bold;">end</span>
+    <span style="color: #3a81c3; font-weight: bold;">while</span> ye[i]&lt;0 ye[i]=y[i]+y[i]*rand(student_wide)*0.2 <span style="color: #3a81c3; font-weight: bold;">end</span>
+<span style="color: #3a81c3; font-weight: bold;">end</span>
+</pre>
+</div>
+
+<p>
+This is how the noisy data look like, together with a least-squares fit.
+</p>
+<pre class="example">
+z_est = 1.0288494803575363
+</pre>
+
+
+<div id="orgaadec2a" class="figure">
+<p><img src="./.ob-jupyter/42ffba9074119fa04f7d5af1b8baa96b7e70d29d.svg" alt="42ffba9074119fa04f7d5af1b8baa96b7e70d29d.svg" class="org-svg" />
+</p>
+</div>
+
+<p>
+The following shows the distribution of \(z\) found for different number of resamplings.
+</p>
+<pre class="example">
+σ estimation=0.11497056730871735
+</pre>
+
+
+<div id="orgd97f64b" class="figure">
+<p><img src="./.ob-jupyter/9bab6282f4319f44e2fabc26d7201b4329fcce8d.svg" alt="9bab6282f4319f44e2fabc26d7201b4329fcce8d.svg" class="org-svg" />
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org6d1153f" class="outline-2">
+<h2 id="org6d1153f"><span class="section-number-2">4.</span> References</h2>
+<div class="outline-text-2" id="text-4">
+<div class="csl-bib-body">
+  <div class="csl-entry"><a id="citeproc_bib_item_1"></a>Leuzzi, Luca, Enzo Marinari, and Giorgio Parisi. 2020. <i>Trattatello Di Probabilità</i>. Roma: web only.</div>
+</div>
+
+
+<p>
+
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: Jun 19, 2022</p>
+<p class="author">Author: Tomás S. Grigera</p>
+<p class="date">Created: 2022-06-20 Mon 21:34</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
