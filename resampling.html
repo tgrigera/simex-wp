@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2022-06-20 Mon 21:34 -->
+<!-- 2022-06-26 Sun 14:28 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Estimating experimental errors with resampling</title>
@@ -44,16 +44,21 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#orgbfcf407">1. Synthetic data</a></li>
-<li><a href="#orgb3010a1">2. Estimation of the mean</a>
+<li><a href="#orgbf3ab22">1. Synthetic data</a></li>
+<li><a href="#org9e36b33">2. Estimation of the mean</a>
 <ul>
-<li><a href="#orgc6e3870">2.1. Gaussian case</a></li>
-<li><a href="#orgf673359">2.2. Student's t-distribution</a></li>
-<li><a href="#org4c57818">2.3. Cauchy-Lorentz</a></li>
+<li><a href="#orgc2f3daa">2.1. Gaussian case</a></li>
+<li><a href="#orgb3acad3">2.2. Student's t-distribution</a></li>
+<li><a href="#org9bbdf87">2.3. Cauchy-Lorentz</a></li>
 </ul>
 </li>
-<li><a href="#org0f1039d">3. Fit parameters</a></li>
-<li><a href="#org6d1153f">4. References</a></li>
+<li><a href="#orgf6ea01c">3. Fit parameters</a>
+<ul>
+<li><a href="#orga7ae072">3.1. Gaussian errors</a></li>
+<li><a href="#org122b961">3.2. Non-Gaussian errors</a></li>
+</ul>
+</li>
+<li><a href="#org3643730">4. References</a></li>
 </ul>
 </div>
 </div>
@@ -98,8 +103,8 @@ The procedure is implemented in the following <code>Julia</code> function:
 resample
 </pre>
 
-<div id="outline-container-orgbfcf407" class="outline-2">
-<h2 id="orgbfcf407"><span class="section-number-2">1.</span> Synthetic data</h2>
+<div id="outline-container-orgbf3ab22" class="outline-2">
+<h2 id="orgbf3ab22"><span class="section-number-2">1.</span> Synthetic data</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 To test the above procedure we will generate pseudo-random data sets centred around zero and distributed according to the following well-known distributions:
@@ -181,16 +186,16 @@ This is how the distributions look.  Points are histograms computed from a set o
 </p>
 
 
-<div id="org6b02b07" class="figure">
-<p><img src="./ob-jupyter/0740c66e2fd973f4a8ec9c5965994ac76e52ad92.svg" alt="0740c66e2fd973f4a8ec9c5965994ac76e52ad92.svg" class="org-svg" />
+<div id="org840028e" class="figure">
+<p><img src="./ob-jupyter/e4fbd913a706daa2d35f376221a066f5ffdcff27.svg" alt="e4fbd913a706daa2d35f376221a066f5ffdcff27.svg" class="org-svg" />
 </p>
 </div>
 </div>
 </div>
 
 
-<div id="outline-container-orgb3010a1" class="outline-2">
-<h2 id="orgb3010a1"><span class="section-number-2">2.</span> Estimation of the mean</h2>
+<div id="outline-container-org9e36b33" class="outline-2">
+<h2 id="org9e36b33"><span class="section-number-2">2.</span> Estimation of the mean</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 Let's try the resampling method to put a confidence interval on the estimation of the mean.  Below we draw synthetic samples of \(N=10\) to 5000 data points, compute the average of those as an estimate of the mean.  We then do as many resamplings as there are data points, then compute the population standard deviation of the means of each resampling.  We give in the tables below the estimation of &mu; with a confidence interval of twice the standard deviation, the estimation of the s.d. of the mean, and the simple estimate of the s.d. using the population s.d divided by \sqrt{N},
@@ -199,8 +204,8 @@ Let's try the resampling method to put a confidence interval on the estimation o
 </div>
 
 
-<div id="outline-container-orgc6e3870" class="outline-3">
-<h3 id="orgc6e3870"><span class="section-number-3">2.1.</span> Gaussian case</h3>
+<div id="outline-container-orgc2f3daa" class="outline-3">
+<h3 id="orgc2f3daa"><span class="section-number-3">2.1.</span> Gaussian case</h3>
 <div class="outline-text-3" id="text-2-1">
 <p>
 The Gaussian case is the simplest, here we expect the simple estimation to work well, plus we know exactly the s.d. of the estimation of \(\mu\) (it is \(\sigma/\sqrt{n}\)).  We produce the table with the following code:
@@ -236,8 +241,8 @@ println(<span style="color: #2d9574;">"|    N |   &#956; estimation |   &#963; e
 </div>
 
 
-<div id="outline-container-orgf673359" class="outline-3">
-<h3 id="orgf673359"><span class="section-number-3">2.2.</span> Student's t-distribution</h3>
+<div id="outline-container-orgb3acad3" class="outline-3">
+<h3 id="orgb3acad3"><span class="section-number-3">2.2.</span> Student's t-distribution</h3>
 <div class="outline-text-3" id="text-2-2">
 <p>
 First we do, with similar code as above, the "narrow" t-distribution i.e. with finite variance equal to 4, as in the Gaussian case.
@@ -277,8 +282,8 @@ Now the t-distribution with undefined variance.  Things are not good here, in th
 </div>
 
 
-<div id="outline-container-org4c57818" class="outline-3">
-<h3 id="org4c57818"><span class="section-number-3">2.3.</span> Cauchy-Lorentz</h3>
+<div id="outline-container-org9bbdf87" class="outline-3">
+<h3 id="org9bbdf87"><span class="section-number-3">2.3.</span> Cauchy-Lorentz</h3>
 <div class="outline-text-3" id="text-2-3">
 <p>
 This distribution doesn't have a mean, so it's not surprising that errors are not decreasing with \(N\) here.
@@ -321,7 +326,7 @@ The plots of the distributions below illustrate a bit what is going on.
 </p>
 
 
-<div id="orgb0d28b1" class="figure">
+<div id="orgd8fb15d" class="figure">
 <p><img src="./ob-jupyter/f83dfdb1ce77e6adb009d358fd57360d2b9dc6a3.svg" alt="f83dfdb1ce77e6adb009d358fd57360d2b9dc6a3.svg" class="org-svg" />
 </p>
 </div>
@@ -330,59 +335,236 @@ The plots of the distributions below illustrate a bit what is going on.
 </div>
 
 
-<div id="outline-container-org0f1039d" class="outline-2">
-<h2 id="org0f1039d"><span class="section-number-2">3.</span> Fit parameters</h2>
+<div id="outline-container-orgf6ea01c" class="outline-2">
+<h2 id="orgf6ea01c"><span class="section-number-2">3.</span> Fit parameters</h2>
 <div class="outline-text-2" id="text-3">
 <p>
-How does resampling work when trying to put an error to parameters obtained from curve-fitting?  We try resampling on fake experimental data created by adding noise to a power law.  We start from 40 points obeying \(y=a x^z\) with \(z=1.2\), then add noise to them using our "wide" Student's t.  Since we will be fitting a power law, we draw <i>relative</i> errors from this distribution.  Also, since we will work with logarithms, we discard errors that would make values negative.  We add noise both on \(x\) and \(y\):
+How does resampling work when trying to put an error to parameters obtained from curve-fitting?  We try resampling on fake experimental data created by adding noise to a power law \(y=ax^z\).  We'll use the next function to draw a simulated dataset with errors around the power law, leaving the error distribution to be decided upon later.  We add noise both on \(x\) and \(y\) and discard errors that would make values negative (this we want from a power law with real exponent, plus, we'll use the logarithms of the data points to do the fitting).
 </p>
 <div class="org-src-container">
-<pre class="src src-jupyter-julia">Random.seed!(1125)
-a=10; z=1.2
-x=10 .^range(-2,-1,length=40)
-y=a*x.^z
-xe=-ones(size(x))
-ye=-ones(size(y))
-<span style="color: #3a81c3; font-weight: bold;">for</span> i<span style="color: #3a81c3; font-weight: bold;">=</span>1:length(x)
-    <span style="color: #3a81c3; font-weight: bold;">while</span> xe[i]&lt;0 xe[i]=x[i]+x[i]*rand(student_wide)*0.1 <span style="color: #3a81c3; font-weight: bold;">end</span>
-    <span style="color: #3a81c3; font-weight: bold;">while</span> ye[i]&lt;0 ye[i]=y[i]+y[i]*rand(student_wide)*0.2 <span style="color: #3a81c3; font-weight: bold;">end</span>
+<pre class="src src-jupyter-julia" id="org0888710"><span style="color: #3a81c3; font-weight: bold;">function</span> <span style="color: #6c3163; font-weight: bold;">draw_dataset</span>(a,z,N,xerror,yerror;logxmin=-2,logxmax=-1)
+    x=10 .^range(logxmin,logxmax,length=N)
+    y=a*x.^z
+    xe=-ones(size(x))
+    ye=-ones(size(y))
+    <span style="color: #3a81c3; font-weight: bold;">for</span> i<span style="color: #3a81c3; font-weight: bold;">=</span>1:length(x)
+        <span style="color: #3a81c3; font-weight: bold;">while</span> xe[i]&lt;0 xe[i]=x[i]+xerror(x[i]) <span style="color: #3a81c3; font-weight: bold;">end</span>
+        <span style="color: #3a81c3; font-weight: bold;">while</span> ye[i]&lt;0 ye[i]=y[i]+yerror(y[i]) <span style="color: #3a81c3; font-weight: bold;">end</span>
+    <span style="color: #3a81c3; font-weight: bold;">end</span>
+    <span style="color: #3a81c3; font-weight: bold;">return</span> x,y,xe,ye
 <span style="color: #3a81c3; font-weight: bold;">end</span>
 </pre>
 </div>
 
-<p>
-This is how the noisy data look like, together with a least-squares fit.
-</p>
 <pre class="example">
-z_est = 1.0288494803575363
+draw_dataset (generic function with 1 method)
+</pre>
+</div>
+
+
+<div id="outline-container-orga7ae072" class="outline-3">
+<h3 id="orga7ae072"><span class="section-number-3">3.1.</span> Gaussian errors</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+Let's start with a 40-point dataset obtained using \(a=10\), \(z=1.2\), and <i>relative</i> errors distributed with a Gaussian with \(\sigma=0.2\) in both coordinates.
+</p>
+<div class="org-src-container">
+<pre class="src src-jupyter-julia">Random.seed!(1125)
+actual_A=10; actual_z=1.2
+Npoints=40
+error_xdist=Normal(0,0.2)
+error_ydist=Normal(0,0.2)
+<span style="color: #6c3163; font-weight: bold;">errx</span>(x) = x*rand(error_xdist)
+<span style="color: #6c3163; font-weight: bold;">erry</span>(y) = y*rand(error_ydist)
+x,y,xe,ye = draw_dataset(actual_A,actual_z,Npoints,errx,erry);
+</pre>
+</div>
+
+<p>
+We'll try  either linear fit of the logarithms or a nonlinear fit.  Since we are assuming uniform relative errors, for an unweighted fit it makes more sense to use the logarithms.
+</p>
+<div class="org-src-container">
+<pre class="src src-jupyter-julia" id="org65e8274"><span style="color: #3a81c3; font-weight: bold;">function</span> <span style="color: #6c3163; font-weight: bold;">fitgp_log</span>(x,y)
+  <span style="color: #6c3163;">@gp</span> <span style="color: #2d9574;">"\$fitdata"</span>=&gt;(log10.(x),log10.(y)) :-
+  <span style="color: #6c3163;">@gp</span> :- <span style="color: #2d9574;">"f(x) = z*x+logA"</span> :-
+  <span style="color: #6c3163;">@gp</span> :- <span style="color: #2d9574;">"fit f(x) \$fitdata via z,logA"</span> :-
+  vars=gpvars()
+  <span style="color: #3a81c3; font-weight: bold;">return</span> vars.z,10^vars.logA,vars.z_err
+<span style="color: #3a81c3; font-weight: bold;">end</span>
+
+<span style="color: #3a81c3; font-weight: bold;">function</span> <span style="color: #6c3163; font-weight: bold;">fitgp_nl</span>(x,y)
+  <span style="color: #6c3163;">@gp</span> <span style="color: #2d9574;">"\$fitdata"</span>=&gt;(x,y) :-
+  <span style="color: #6c3163;">@gp</span> :- <span style="color: #2d9574;">"f(x) = A*x**z"</span> :-
+  <span style="color: #6c3163;">@gp</span> :- <span style="color: #2d9574;">"fit f(x) \$fitdata via z,A"</span> :-
+  vars=gpvars()
+  <span style="color: #3a81c3; font-weight: bold;">return</span> vars.z,vars.A,vars.z_err
+<span style="color: #3a81c3; font-weight: bold;">end</span>
+
+<span style="color: #3a81c3; font-weight: bold;">using</span> Polynomials
+<span style="color: #3a81c3; font-weight: bold;">function</span> <span style="color: #6c3163; font-weight: bold;">fitjl_log</span>(x,y)
+    f=Polynomials.fit(log10.(x),log10.(y),1)
+    <span style="color: #3a81c3; font-weight: bold;">return</span> coeffs(f)[2],10^coeffs(f)[1],0
+<span style="color: #3a81c3; font-weight: bold;">end</span>
+</pre>
+</div>
+
+<pre class="example">
+fitjl_log (generic function with 1 method)
 </pre>
 
 
-<div id="orgaadec2a" class="figure">
-<p><img src="./ob-jupyter/42ffba9074119fa04f7d5af1b8baa96b7e70d29d.svg" alt="42ffba9074119fa04f7d5af1b8baa96b7e70d29d.svg" class="org-svg" />
+<p>
+This is how our noisy dataset looks like together with the fits.  From now on we shall only use the log-linear fit with the Julia code, which does not give errors but is faster.
+</p>
+<pre class="example">
+From linear fit of the logs (gnuplot): z = 1.13868780170677, s.d=0.0638290280504025
+From linear fit of the logs (Julia): z = 1.138687795950956
+From nonlinear fit: z = 0.945143141074797, s.d=0.0847012187377099
+</pre>
+
+
+<div id="org6f9ab22" class="figure">
+<p><img src="./ob-jupyter/9cebb94ac5e4c4097d1021a1e3803e285c0b00a2.svg" alt="9cebb94ac5e4c4097d1021a1e3803e285c0b00a2.svg" class="org-svg" />
 </p>
 </div>
 
 <p>
-The following shows the distribution of \(z\) found for different number of resamplings.
+Now we shall compute the distribution of \(z\) using the resampling method with the dataset shown above, and compare it with the distribution obtained from drawing many datasets with the same noise distribution.
 </p>
+<div class="org-src-container">
+<pre class="src src-jupyter-julia" id="org14ed686"><span style="color: #3a81c3; font-weight: bold;">function</span> <span style="color: #6c3163; font-weight: bold;">redraw_fit</span>(Nsamp,drawfunction,fitfunction)
+    zs=Float64[]
+    <span style="color: #3a81c3; font-weight: bold;">for</span> _<span style="color: #3a81c3; font-weight: bold;">=</span>1:Nsamp
+        x,y,xe,ye = drawfunction()
+        z,A,z_err=fitfunction(xe,ye)
+        push!(zs,z)
+    <span style="color: #3a81c3; font-weight: bold;">end</span>
+    <span style="color: #3a81c3; font-weight: bold;">return</span> zs
+<span style="color: #3a81c3; font-weight: bold;">end</span>
+
+<span style="color: #3a81c3; font-weight: bold;">function</span> <span style="color: #6c3163; font-weight: bold;">resample_fit</span>(xe,ye,Nrs,fitfunction)
+    zs=Float64[]
+    <span style="color: #3a81c3; font-weight: bold;">for</span> _<span style="color: #3a81c3; font-weight: bold;">=</span>1:Nrs
+        xrs=Float64[]
+        yrs=Float64[]
+        <span style="color: #3a81c3; font-weight: bold;">for</span> i <span style="color: #3a81c3; font-weight: bold;">in</span> eachindex(xe) <span style="color: #3a81c3; font-weight: bold;">if</span> Random.rand(Float64)&gt;0.5 push!(xrs,xe[i]); push!(yrs,ye[i]) <span style="color: #3a81c3; font-weight: bold;">end</span> <span style="color: #3a81c3; font-weight: bold;">end</span>
+        z,A,z_err=fitfunction(xrs,yrs)
+        push!(zs,z)
+    <span style="color: #3a81c3; font-weight: bold;">end</span>
+    <span style="color: #3a81c3; font-weight: bold;">return</span> zs
+<span style="color: #3a81c3; font-weight: bold;">end</span>
+</pre>
+</div>
+
 <pre class="example">
-σ estimation=0.11497056730871735
+resample_fit (generic function with 1 method)
 </pre>
 
 
-<div id="orgd97f64b" class="figure">
-<p><img src="./ob-jupyter/9bab6282f4319f44e2fabc26d7201b4329fcce8d.svg" alt="9bab6282f4319f44e2fabc26d7201b4329fcce8d.svg" class="org-svg" />
+<pre class="example">
+sd from resampling = 0.07696983166805006
+sd from redrawing  = 0.07058433611134453
+</pre>
+
+
+<div id="org466f737" class="figure">
+<p><img src="./ob-jupyter/f2ddc6ec2be518b29486587bc27e98e9aee5f442.svg" alt="f2ddc6ec2be518b29486587bc27e98e9aee5f442.svg" class="org-svg" />
+</p>
+</div>
+
+<p>
+Now we repeat the procedure but without errors in x
+</p>
+<pre class="example">
+Fit of one sample:  z=1.23549774078608, s.d = 0.0392945637464569
+sd from resampling = 0.04663230336560641
+sd from redrawing  = 0.049139038124389696
+</pre>
+
+
+<div id="org44f4d61" class="figure">
+<p><img src="./ob-jupyter/92e4ca04eea6112bbb71dbc2d81955710b134681.svg" alt="92e4ca04eea6112bbb71dbc2d81955710b134681.svg" class="org-svg" />
+</p>
+</div>
+
+<p>
+<b>In summary:</b> for Gaussian errors, the resampling and Gnuplot s.d. estimates are quite good.  The unweighted fit seems to introduce a <i>bias</i> towards smaller exponents in the case of uniform relative errors in x.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-org122b961" class="outline-3">
+<h3 id="org122b961"><span class="section-number-3">3.2.</span> Non-Gaussian errors</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+We now try to use resampling using a broader distribution for the errors.   We'll use again  40 points, \(y=a x^z\) with \(z=1.2\), then add noise to them using a rescaled Student's distribution with undefined variance:
+</p>
+<div class="org-src-container">
+<pre class="src src-jupyter-julia">Random.seed!(1125)
+actual_A=10; actual_z=1.2
+Npoints=40
+
+&#957;x=1.1
+xerror_dist=TDist(&#957;x)
+&#957;y=1.1
+yerror_dist=TDist(&#957;y)
+<span style="color: #6c3163; font-weight: bold;">xerror</span>(x) = 0.1*x*rand(xerror_dist)
+<span style="color: #6c3163; font-weight: bold;">yerror</span>(y) = 0.2*y*rand(yerror_dist)
+x,y,xe,ye = draw_dataset(actual_A,actual_z,Npoints,xerror,yerror);
+</pre>
+</div>
+
+<pre class="example">
+From linear fit of the logs (gnuplot): z = 1.02884962690192, s.d=0.123669598850099
+From linear fit of the logs (Julia): z = 1.028849480357536
+From nonlinear fit: z = 1.15350070116037, s.d=0.141987553786144
+</pre>
+
+
+<div id="org6bf2dd8" class="figure">
+<p><img src="./ob-jupyter/db269b215033b5b024c3f2f760c35cfb1de92940.svg" alt="db269b215033b5b024c3f2f760c35cfb1de92940.svg" class="org-svg" />
+</p>
+</div>
+
+<p>
+The distribution of exponents with resampling and with redrawing.  The bias towards smaller exponents is also seen.  s.d. from resampling is smaller that actual s.d.
+</p>
+<pre class="example">
+sd from resampling = 0.1149518870663573
+sd from redrawing  = 0.20946558038211066
+</pre>
+
+
+<div id="org8f9972f" class="figure">
+<p><img src="./ob-jupyter/3e7628d1e0bd9840071b2486efceabbf770d74d3.svg" alt="3e7628d1e0bd9840071b2486efceabbf770d74d3.svg" class="org-svg" />
+</p>
+</div>
+
+<p>
+Now without errors in the abscissas.  Here there is no bias, and the resampling sd estimate is quite reasonable. 
+</p>
+<pre class="example">
+Fit of one sample:  z=1.25460546653145, s.d = 0.0935657648424533
+sd from resampling = 0.11234109127420418
+sd from redrawing  = 0.13691383411049807
+</pre>
+
+
+<div id="orge76b7ff" class="figure">
+<p><img src="./ob-jupyter/81f804f73a4d1458ea5828d613463cd501333ebe.svg" alt="81f804f73a4d1458ea5828d613463cd501333ebe.svg" class="org-svg" />
 </p>
 </div>
 </div>
 </div>
+</div>
 
 
-<div id="outline-container-org6d1153f" class="outline-2">
-<h2 id="org6d1153f"><span class="section-number-2">4.</span> References</h2>
+
+<div id="outline-container-org3643730" class="outline-2">
+<h2 id="org3643730"><span class="section-number-2">4.</span> References</h2>
 <div class="outline-text-2" id="text-4">
-<div class="csl-bib-body">
+<style>.csl-entry{text-indent: -1.5em; margin-left: 1.5em;}</style><div class="csl-bib-body">
   <div class="csl-entry"><a id="citeproc_bib_item_1"></a>Leuzzi, Luca, Enzo Marinari, and Giorgio Parisi. 2020. <i>Trattatello Di Probabilità</i>. Roma: web only.</div>
 </div>
 
@@ -396,7 +578,7 @@ The following shows the distribution of \(z\) found for different number of resa
 <div id="postamble" class="status">
 <p class="date">Date: Jun 19, 2022</p>
 <p class="author">Author: Tomás S. Grigera</p>
-<p class="date">Created: 2022-06-20 Mon 21:34</p>
+<p class="date">Created: 2022-06-26 Sun 14:28</p>
 <p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>
